@@ -61,17 +61,17 @@ param set-default SIM_GZ_WH_REV 0 # no need to reverse any wheels
 
 # Cutter deck blades clutch, PCA9685 servo channel 3,  "RC FLAPS" (406) - leftmost switch, or "Servo 3" (203):
 param set-default SIM_GZ_SV_FUNC3 203
-param set-default SIM_GZ_SV_MIN3 0
-param set-default SIM_GZ_SV_MAX3 1000
-param set-default SIM_GZ_SV_DIS3 500
+param set-default SIM_GZ_SV_MIN3 900
+param set-default SIM_GZ_SV_MAX3 2700
+param set-default SIM_GZ_SV_DIS3 1800
 param set-default SIM_GZ_SV_FAIL3 500
 
 # Gas engine throttle, PCA9685 servo channel 4, "RC AUX1" (407) - left knob, or "Servo 4" (204):
 #    - on minimum when disarmed or failed:
 param set-default SIM_GZ_SV_FUNC4 204
-param set-default SIM_GZ_SV_MIN4 0
-param set-default SIM_GZ_SV_MAX4 1000
-param set-default SIM_GZ_SV_DIS4 500
+param set-default SIM_GZ_SV_MIN4 900
+param set-default SIM_GZ_SV_MAX4 2700
+param set-default SIM_GZ_SV_DIS4 1800
 param set-default SIM_GZ_SV_FAIL4 500
 
 # Controlling PCA9685 servos 5,6,7,8 directly via "Servo 5..8" setting, by publishing actuator_servos.control[]:

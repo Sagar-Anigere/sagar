@@ -77,10 +77,10 @@ param set-default SIM_GZ_SV_FUNC3 203
 param set-default SIM_GZ_SV_FUNC4 204
 param set-default SIM_GZ_SV_FUNC5 205
 
-param set-default SIM_GZ_SV_MAX4 27000
-param set-default SIM_GZ_SV_MIN4 18000
-param set-default SIM_GZ_SV_MAX5 27000
-param set-default SIM_GZ_SV_MIN5 18000
+param set-default SIM_GZ_SV_MAX4 2700
+param set-default SIM_GZ_SV_MIN4 1800
+param set-default SIM_GZ_SV_MAX5 2700
+param set-default SIM_GZ_SV_MIN5 1800
 
 param set-default NPFG_PERIOD 12
 param set-default FW_PR_FF 0.2
