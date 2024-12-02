@@ -122,6 +122,7 @@ set(msg_files
 	HomePosition.msg
 	HoverThrustEstimate.msg
 	InputRc.msg
+	InternalCombustionEngineControl.msg
 	InternalCombustionEngineStatus.msg
 	IridiumsbdStatus.msg
 	IrlockReport.msg
