@@ -98,6 +98,7 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/fw_lateral_control_setpoint.h>
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
 #include "figure_eight/FigureEight.hpp"
@@ -216,6 +217,7 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _fw_lateral_ctrl_sub{ORB_ID(fw_lateral_control_setpoint)};
 
 	uORB::Publication<vehicle_attitude_setpoint_s> _attitude_sp_pub;
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
@@ -229,6 +231,8 @@ private:
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
 	uORB::PublicationData<flight_phase_estimation_s> _flight_phase_estimation_pub{ORB_ID(flight_phase_estimation)};
+	uORB::PublicationData<fw_lateral_control_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fw_lateral_control_setpoint)};
+	uORB::PublicationData<fw_lateral_control_setpoint_s> _lateral_ctrl_status_pub{ORB_ID(fw_lateral_control_status)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
@@ -857,9 +861,9 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateWaypoints(const matrix::Vector2f &start_waypoint, const matrix::Vector2f &end_waypoint,
-			       const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
-			       const matrix::Vector2f &wind_vel);
+	PathControllerOutput navigateWaypoints(const matrix::Vector2f &start_waypoint, const matrix::Vector2f &end_waypoint,
+					       const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
+					       const matrix::Vector2f &wind_vel);
 
 	/*
 	 * Takes one waypoint and steers the vehicle towards this.
@@ -872,8 +876,8 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateWaypoint(const matrix::Vector2f &waypoint_pos, const matrix::Vector2f &vehicle_pos,
-			      const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
+	PathControllerOutput navigateWaypoint(const matrix::Vector2f &waypoint_pos, const matrix::Vector2f &vehicle_pos,
+					      const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
 
 	/*
 	 * Line (infinite) following logic. Two points on the line are used to define the
@@ -886,8 +890,9 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateLine(const Vector2f &point_on_line_1, const Vector2f &point_on_line_2, const Vector2f &vehicle_pos,
-			  const Vector2f &ground_vel, const Vector2f &wind_vel);
+	PathControllerOutput navigateLine(const Vector2f &point_on_line_1, const Vector2f &point_on_line_2,
+					  const Vector2f &vehicle_pos,
+					  const Vector2f &ground_vel, const Vector2f &wind_vel);
 
 	/*
 	 * Line (infinite) following logic. One point on the line and a line bearing are used to define
@@ -900,8 +905,8 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateLine(const Vector2f &point_on_line, const float line_bearing, const Vector2f &vehicle_pos,
-			  const Vector2f &ground_vel, const Vector2f &wind_vel);
+	PathControllerOutput navigateLine(const Vector2f &point_on_line, const float line_bearing, const Vector2f &vehicle_pos,
+					  const Vector2f &ground_vel, const Vector2f &wind_vel);
 
 	/*
 	 * Loitering (unlimited) logic. Takes loiter center, radius, and direction and
@@ -915,9 +920,9 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
-			    float radius, bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_vel,
-			    const matrix::Vector2f &wind_vel);
+	PathControllerOutput navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
+					    float radius, bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_vel,
+					    const matrix::Vector2f &wind_vel);
 
 	/*
 	 * Path following logic. Takes poisiton, path tangent, curvature and
@@ -932,9 +937,9 @@ private:
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 * @param[in] curvature of the path setpoint [1/m]
 	 */
-	void navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
-				 const matrix::Vector2f &tangent_setpoint,
-				 const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
+	PathControllerOutput navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
+			const matrix::Vector2f &tangent_setpoint,
+			const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
 
 	/*
 	 * Navigate on a fixed bearing.
@@ -947,8 +952,9 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateBearing(const matrix::Vector2f &vehicle_pos, float bearing, const matrix::Vector2f &ground_vel,
-			     const matrix::Vector2f &wind_vel);
+	PathControllerOutput navigateBearing(const matrix::Vector2f &vehicle_pos, float bearing,
+					     const matrix::Vector2f &ground_vel,
+					     const matrix::Vector2f &wind_vel);
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,

@@ -73,6 +73,98 @@ float NPFG::canRun(const vehicle_local_position_s &local_pos, const bool is_wind
 	return flying_forward_factor * low_ground_speed_factor;
 }
 
+float NPFG::mapBearingSetpointToHeadingSetpoint(const float bearing_setpoint, const Vector2f wind_vel,
+		const float min_ground_speed) const
+{
+
+	Vector2f bearing_vector = Vector2f{cosf(bearing_setpoint), sinf(bearing_setpoint)};
+	const float wind_cross_bearing = wind_vel.cross(bearing_vector);
+	const float wind_dot_bearing = wind_vel.dot(bearing_vector);
+
+	const Vector2f air_vel_ref = refAirVelocity(wind_vel, bearing_vector, wind_cross_bearing,
+				     wind_dot_bearing, wind_vel.norm(), min_ground_speed);
+
+	return atan2f(air_vel_ref(1), air_vel_ref(0));
+}
+
+float NPFG::controlHeading(const float heading_sp, const float heading, const float airspeed) const
+{
+
+	const Vector2f airspeed_vector = Vector2f{cosf(heading), sinf(heading)} * airspeed;
+	const Vector2f airspeed_sp_vector_unit = Vector2f{cosf(heading_sp), sinf(heading_sp)};
+
+	const float dot_air_vel_err = airspeed_vector.dot(airspeed_sp_vector_unit);
+	const float cross_air_vel_err = airspeed_vector.cross(airspeed_sp_vector_unit);
+
+	if (dot_air_vel_err < 0.0f) {
+		// hold max lateral acceleration command above 90 deg heading error
+		return p_gain_ * ((cross_air_vel_err < 0.0f) ? -airspeed : airspeed);
+
+	} else {
+		// airspeed/airspeed_ref is used to scale any incremented airspeed reference back to the current airspeed
+		// for acceleration commands in a "feedback" sense (i.e. at the current vehicle airspeed)
+		return p_gain_ * cross_air_vel_err;
+	}
+}
+
+PathControllerOutput NPFG::guideToPath2(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_vel,
+					const matrix::Vector2f &wind_vel, const matrix::Vector2f &unit_path_tangent,
+					const matrix::Vector2f &position_on_path, const float path_curvature) const
+{
+	const float ground_speed = ground_vel.norm();
+
+	const Vector2f air_vel = ground_vel - wind_vel;
+	const float airspeed = air_vel.norm();
+
+	const float wind_speed = wind_vel.norm();
+
+	const Vector2f path_pos_to_vehicle{curr_pos_local - position_on_path};
+	const float signed_track_error = unit_path_tangent.cross(path_pos_to_vehicle);
+
+	// on-track wind triangle projections
+	const float wind_cross_upt = wind_vel.cross(unit_path_tangent);
+	const float wind_dot_upt = wind_vel.dot(unit_path_tangent);
+
+	// calculate the bearing feasibility on the track at the current closest point
+	const float feas_on_track = bearingFeasibility(wind_cross_upt, wind_dot_upt, airspeed, wind_speed);
+
+	const float track_error = fabsf(signed_track_error);
+
+	// update control parameters considering upper and lower stability bounds (if enabled)
+	// must be called before trackErrorBound() as it updates time_const_
+	const float adapted_period = adaptPeriod(ground_speed, airspeed, wind_speed, track_error,
+				     path_curvature, wind_vel, unit_path_tangent, feas_on_track);
+	//const float p_gain = pGain(adapted_period, damping_);
+	const float time_const = timeConst(adapted_period, damping_);
+
+	// track error bound is dynamic depending on ground speed
+	const float track_error_bound = trackErrorBound(ground_speed, time_const);
+	const float normalized_track_error = normalizedTrackError(track_error, track_error_bound);
+
+	// look ahead angle based solely on track proximity
+	const float look_ahead_ang = lookAheadAngle(normalized_track_error);
+
+	const float track_proximity = trackProximity(look_ahead_ang);
+
+	const Vector2f  bearing_vec = bearingVec(unit_path_tangent, look_ahead_ang, signed_track_error);
+
+	// wind triangle projections
+	const float wind_cross_bearing = wind_vel.cross(bearing_vec);
+	const float wind_dot_bearing = wind_vel.dot(bearing_vec);
+
+	// continuous representation of the bearing feasibility
+	const float feas = bearingFeasibility(wind_cross_bearing, wind_dot_bearing, airspeed, wind_speed);
+
+	// we consider feasibility of both the current bearing as well as that on the track at the current closest point
+	const float feas_combined = feas * feas_on_track;
+	// lateral acceleration needed to stay on curved track (assuming no heading error)
+	const float lateral_accel_ff = lateralAccelFF(unit_path_tangent, ground_vel, wind_dot_upt,
+				       wind_cross_upt, airspeed, wind_speed, signed_track_error, path_curvature) * feas_combined * track_proximity;
+
+	return PathControllerOutput{.course_setpoint = atan2f(bearing_vec(1), bearing_vec(0)),
+				    .lateral_acceleration_feedforward = lateral_accel_ff};
+}
+
 void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &ground_vel, const Vector2f &wind_vel,
 		       const Vector2f &unit_path_tangent,
 		       const Vector2f &position_on_path, const float path_curvature)

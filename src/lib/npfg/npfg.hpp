@@ -69,6 +69,12 @@
  * NPFG
  * Lateral-directional nonlinear path following guidance logic with excess wind handling
  */
+
+struct PathControllerOutput {
+	float course_setpoint{NAN};
+	float lateral_acceleration_feedforward{NAN};
+};
+
 class NPFG
 {
 
@@ -100,6 +106,15 @@ public:
 			 const matrix::Vector2f &wind_vel,
 			 const matrix::Vector2f &unit_path_tangent, const matrix::Vector2f &position_on_path,
 			 const float path_curvature);
+
+	PathControllerOutput guideToPath2(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_vel,
+					  const matrix::Vector2f &wind_vel,
+					  const matrix::Vector2f &unit_path_tangent, const matrix::Vector2f &position_on_path,
+					  const float path_curvature) const;
+
+	float mapBearingSetpointToHeadingSetpoint(const float bearing_setpoint, const matrix::Vector2f wind_vel,
+			const float min_ground_speed) const;
+	float controlHeading(const float heading_sp, const float heading, const float airspeed) const;
 
 	/*
 	 * Set the nominal controller period [s].

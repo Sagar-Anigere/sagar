@@ -107,8 +107,8 @@ public:
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
 	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 */
-	void updateSetpoint(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-			    const FigureEightPatternParameters &parameters, float target_airspeed);
+	PathControllerOutput updateSetpoint(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+					    const FigureEightPatternParameters &parameters, float target_airspeed);
 	/**
 	 * @brief Get the roll setpoint
 	 *
@@ -175,9 +175,9 @@ private:
 	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 * @param[in] pattern_points are the relevant points defining the figure eight pattern.
 	 */
-	void applyControl(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-			  const FigureEightPatternParameters &parameters, float target_airspeed,
-			  const FigureEightPatternPoints &pattern_points);
+	PathControllerOutput applyControl(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+					  const FigureEightPatternParameters &parameters, float target_airspeed,
+					  const FigureEightPatternPoints &pattern_points);
 	/**
 	 * @brief Update active segment.
 	 *
@@ -214,9 +214,10 @@ private:
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
 	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 */
-	void applyCircle(bool loiter_direction_counter_clockwise, const matrix::Vector2f &normalized_circle_offset,
-			 const matrix::Vector2f &curr_pos_local,
-			 const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters, float target_airspeed);
+	PathControllerOutput applyCircle(bool loiter_direction_counter_clockwise,
+					 const matrix::Vector2f &normalized_circle_offset,
+					 const matrix::Vector2f &curr_pos_local,
+					 const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters, float target_airspeed);
 	/**
 	 * @brief Apply path lateral control
 	 *
@@ -227,9 +228,10 @@ private:
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
 	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 */
-	void applyLine(const matrix::Vector2f &normalized_line_start_offset, const matrix::Vector2f &normalized_line_end_offset,
-		       const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-		       const FigureEightPatternParameters &parameters, float target_airspeed);
+	PathControllerOutput applyLine(const matrix::Vector2f &normalized_line_start_offset,
+				       const matrix::Vector2f &normalized_line_end_offset,
+				       const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+				       const FigureEightPatternParameters &parameters, float target_airspeed);
 
 private:
 	/**
