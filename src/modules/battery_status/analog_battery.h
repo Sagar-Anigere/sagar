@@ -34,6 +34,7 @@
 #pragma once
 
 #include <battery/battery.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <parameters/param.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -95,6 +96,14 @@ protected:
 private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uint8_t _arming_state{0};
+
+#ifdef BOARD_BATTERY_ADC_VOLTAGE_FILTER_S
+	AlphaFilter<float> _voltage_filter;
+#endif
+
+#ifdef BOARD_BATTERY_ADC_CURRENT_FILTER_S
+	AlphaFilter<float> _current_filter;
+#endif
 
 	void updateTopics();
 };
