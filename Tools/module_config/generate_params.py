@@ -284,9 +284,13 @@ Note that non-motor outputs might already be active in prearm state if COM_PREAR
 '''
         minimum_description = \
 '''Minimum output value (when not disarmed).
+Servo output represents angles [-180,180] with an offset of 180 deg, and a scaling of 10.
+Ex. ailerons of -45 deg would be 1350. (Must be coherent with joint limits in the airframe/model.sdf)
 '''
         maximum_description = \
 '''Maxmimum output value (when not disarmed).
+Servo output represents angles [-180,180] deg with an offset of 180 deg, and a scaling of 10.
+Ex. ailerons of 45 deg would be 2250. (Must be coherent with joint limits in the airframe/model.sdf)
 '''
         failsafe_description = \
 '''This is the output value that is set when in failsafe mode.
