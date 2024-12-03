@@ -1319,6 +1319,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		} else {
 			// continue straight until vehicle has sufficient altitude
 			roll_body = 0.0f;
+			_flaps_setpoint = _param_fw_flaps_lnd_scl.get(); // keep flaps in landing configuration
 		}
 
 		is_low_height = true; // In low-height flight, TECS will control altitude tighter
