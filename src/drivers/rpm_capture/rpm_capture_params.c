@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,52 +31,13 @@
  *
  ****************************************************************************/
 
-#ifndef RAW_RPM_HPP
-#define RAW_RPM_HPP
-
-#include <uORB/topics/rpm.h>
-
-class MavlinkStreamRawRpm : public MavlinkStream
-{
-public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamRawRpm(mavlink); }
-
-	static constexpr const char *get_name_static() { return "RAW_RPM"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_RAW_RPM; }
-
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
-	unsigned get_size() override
-	{
-		return _rpm_subs.advertised_count() * (MAVLINK_MSG_ID_RAW_RPM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
-	}
-
-private:
-	explicit MavlinkStreamRawRpm(Mavlink *mavlink) : MavlinkStream(mavlink) {}
-
-	uORB::SubscriptionMultiArray<rpm_s> _rpm_subs{ORB_ID::rpm};
-
-	bool send() override
-	{
-		bool updated = false;
-
-		for (int i = 0; i < _rpm_subs.size(); i++) {
-			rpm_s rpm;
-
-			if (_rpm_subs[i].update(&rpm)) {
-				mavlink_raw_rpm_t msg{};
-
-				msg.index = i;
-				msg.frequency = rpm.rpm_estimate;
-
-				mavlink_msg_raw_rpm_send_struct(_mavlink->get_channel(), &msg);
-				updated = true;
-			}
-		}
-
-		return updated;
-	}
-};
-
-#endif // RAW_RPM_HPP
+/**
+ * RPM Capture Enable
+ *
+ * Enables the RPM capture module on FMU channel 5.
+ *
+ * @boolean
+ * @group System
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(RPM_CAP_ENABLE, 0);

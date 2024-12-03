@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,52 +31,58 @@
  *
  ****************************************************************************/
 
-#ifndef RAW_RPM_HPP
-#define RAW_RPM_HPP
+#pragma once
 
+#include <drivers/drv_hrt.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <px4_arch/micro_hal.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/pwm_input.h>
 #include <uORB/topics/rpm.h>
 
-class MavlinkStreamRawRpm : public MavlinkStream
+using namespace time_literals;
+
+class RPMCapture : public ModuleBase<RPMCapture>, public px4::ScheduledWorkItem
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamRawRpm(mavlink); }
+	RPMCapture();
+	virtual ~RPMCapture();
 
-	static constexpr const char *get_name_static() { return "RAW_RPM"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_RAW_RPM; }
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	unsigned get_size() override
-	{
-		return _rpm_subs.advertised_count() * (MAVLINK_MSG_ID_RAW_RPM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
-	}
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	bool init();
+
+	static int gpio_interrupt_callback(int irq, void *context, void *arg);
+
+	/** RPMCapture is an interrupt-driven task and needs to be manually stopped */
+	static void stop();
 
 private:
-	explicit MavlinkStreamRawRpm(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	static constexpr hrt_abstime RPM_PULSE_TIMEOUT = 1_s;
 
-	uORB::SubscriptionMultiArray<rpm_s> _rpm_subs{ORB_ID::rpm};
+	void Run() override;
 
-	bool send() override
-	{
-		bool updated = false;
+	int _channel{-1};
+	uint32_t _rpm_capture_gpio{0};
+	uORB::Publication<pwm_input_s> _pwm_input_pub{ORB_ID(pwm_input)};
+	uORB::PublicationMulti<rpm_s> _rpm_pub{ORB_ID(rpm)};
 
-		for (int i = 0; i < _rpm_subs.size(); i++) {
-			rpm_s rpm;
+	hrt_abstime _hrt_timestamp{0};
+	hrt_abstime _hrt_timestamp_prev{0};
+	uint32_t _period{0};
+	uint32_t _error_count{0};
+	px4::atomic<bool> _value_processed{true};
 
-			if (_rpm_subs[i].update(&rpm)) {
-				mavlink_raw_rpm_t msg{};
-
-				msg.index = i;
-				msg.frequency = rpm.rpm_estimate;
-
-				mavlink_msg_raw_rpm_send_struct(_mavlink->get_channel(), &msg);
-				updated = true;
-			}
-		}
-
-		return updated;
-	}
+	hrt_abstime _timestamp_last_update{0}; ///< to caluclate dt
+	AlphaFilter<float> _rpm_filter;
 };
-
-#endif // RAW_RPM_HPP
